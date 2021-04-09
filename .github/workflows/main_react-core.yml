@@ -9,54 +9,110 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  AZURE_WEBAPP_NAME: "react-core"    # set this to your application's name
+  AZURE_WEBAPP_PACKAGE_PATH: '.'             # set this to the path to your web app project, defaults to the repository root
+  DOTNET_VERSION: '5.0.101'                  # set this to the dot net version to use
+  RESOURCEGROUPNAME: "iwamoto.takaaki_rg_Windows_japanwest"
+  LOCATION: "Japan West"
+  HOSTINGPLANNAME: "react-core-plan"
+  APPINSIGHTLOCATION: "Japan West"
+  SKU: "F1 Free"
+
 jobs:
   build:
-    runs-on: windows-latest
-
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
 
-    - name: Set up .NET Core
+    # Checkout the repo
+    - uses: actions/checkout@master
+    
+    - name: Creating artifact directories
+      run: |
+        mkdir buildartifacts
+        mkdir deploymenttemplates
+    # Setup .NET Core SDK
+    - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: '5.0.x'
+        dotnet-version: ${{ env.DOTNET_VERSION }} 
 
-    - name: Download node.js
-      run: curl -sL https://deb.nodesource.com/setup_10.x |  bash -
+    # Setup node.js & npm
+    - name: Setup node.js and npm
+      run: |
+        curl -sL https://deb.nodesource.com/setup_10.x |  bash -
+        apt-get install -y nodejs
 
-    - name: Install node.js
-      run: apt-get install -y nodejs
+    # Run dotnet build and publish
+    - name: dotnet build unit test and publish
+      run: |
+        cd Application
+        dotnet restore
+        dotnet build --configuration Release
+        dotnet test aspnet-core-dotnet-core.UnitTests/aspnet-core-dotnet-core.UnitTests.csproj
+        dotnet publish -c Release -o '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/build'
 
-    - name: Build with dotnet
-      run: dotnet build --configuration Release
-
-    - name: dotnet publish
-      run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
-
-    - name: Upload artifact for deployment job
+    - name: Archive Application
+      run: |
+        zip -qq -r ./buildartifacts/Application.zip ./Application/build
+    - name: Upload Application to Build Artifact
+      continue-on-error: false
       uses: actions/upload-artifact@v2
       with:
-        name: .net-app
-        path: ${{env.DOTNET_ROOT}}/myapp
+        name: buildartifacts
+        path: buildartifacts
+
+    - name: Archive ArmTemplates
+      run: |
+        zip -qq -r ./deploymenttemplates/ArmTemplates.zip ./ArmTemplates
+    - name: Upload Arm templates to Artifact
+      continue-on-error: false
+      uses: actions/upload-artifact@v2
+      with:
+        name: deploymenttemplates
+        path: deploymenttemplates
 
   deploy:
-    runs-on: windows-latest
     needs: build
-    environment:
-      name: 'production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Download artifact from build job
-      uses: actions/download-artifact@v2
-      with:
-        name: .net-app
 
-    - name: Deploy to Azure Web App
-      id: deploy-to-webapp
+    - name: Download Build Artifact
+      uses: actions/download-artifact@v2
+      continue-on-error: false
+      with:
+        name: buildartifacts
+        path: buildartifacts
+
+    - name: Unzipping Build artifact
+      run: |
+        unzip -qq ./buildartifacts/Application.zip -d .
+    - name: Download an ARM template
+      uses: actions/download-artifact@v2
+      continue-on-error: false
+      with:
+        name: deploymenttemplates
+        path: deploymenttemplates
+
+    - name: Unzipping ARM artifact
+      run: |
+        unzip -qq ./deploymenttemplates/ArmTemplates.zip -d .
+    - name: Login to Azure
+      uses: azure/login@v1
+      continue-on-error: false
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Deploy ARM Template
+      uses: azure/CLI@v1
+      continue-on-error: false
+      with:
+        inlineScript: |
+          az group create --name "${{ env.RESOURCEGROUPNAME }}" --location "${{ env.LOCATION }}"
+          az deployment group create --resource-group "${{ env.RESOURCEGROUPNAME }}" --template-file ./ArmTemplates/windows-webapp-template.json --parameters webAppName="${{ env.AZURE_WEBAPP_NAME }}" hostingPlanName="${{ env.HOSTINGPLANNAME }}" appInsightsLocation="${{ env.APPINSIGHTLOCATION }}" sku="${{ env.SKU }}"
+    - name: 'Deploy web app'
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'react-core'
-        slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_8837f73a6a934e4c87086c9755452d26 }}
-        package: .
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        package: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/Application/build'
