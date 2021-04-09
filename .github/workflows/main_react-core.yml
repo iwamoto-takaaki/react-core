@@ -47,7 +47,6 @@ jobs:
     # Run dotnet build and publish
     - name: dotnet build unit test and publish
       run: |
-        cd Application
         dotnet restore
         dotnet build --configuration Release
         dotnet test aspnet-core-dotnet-core.UnitTests/aspnet-core-dotnet-core.UnitTests.csproj
