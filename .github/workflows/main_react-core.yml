@@ -38,10 +38,12 @@ jobs:
         dotnet-version: ${{ env.DOTNET_VERSION }} 
 
     # Setup node.js & npm
-    - name: Setup node.js and npm
-      run: |
-        curl -sL https://deb.nodesource.com/setup_10.x |  bash -
-        apt-get install -y nodejs
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js 
+      uses: actions/setup-node@v1
+      with:
+        node-version: 10.x
 
     # Run dotnet build and publish
     - name: dotnet build unit test and publish
