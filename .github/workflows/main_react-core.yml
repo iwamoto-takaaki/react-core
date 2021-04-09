@@ -21,6 +21,12 @@ jobs:
       with:
         dotnet-version: '5.0.x'
 
+    - name: Download node.js
+      run: curl -sL https://deb.nodesource.com/setup_10.x |  bash -
+
+    - name: Install node.js
+      run: apt-get install -y nodejs
+
     - name: Build with dotnet
       run: dotnet build --configuration Release
 
