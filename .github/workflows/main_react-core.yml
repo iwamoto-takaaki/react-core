@@ -63,16 +63,6 @@ jobs:
         name: buildartifacts
         path: buildartifacts
 
-    - name: Archive ArmTemplates
-      run: |
-        zip -qq -r ./deploymenttemplates/ArmTemplates.zip ./ArmTemplates
-    - name: Upload Arm templates to Artifact
-      continue-on-error: false
-      uses: actions/upload-artifact@v2
-      with:
-        name: deploymenttemplates
-        path: deploymenttemplates
-
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -89,29 +79,13 @@ jobs:
     - name: Unzipping Build artifact
       run: |
         unzip -qq ./buildartifacts/Application.zip -d .
-    - name: Download an ARM template
-      uses: actions/download-artifact@v2
-      continue-on-error: false
-      with:
-        name: deploymenttemplates
-        path: deploymenttemplates
 
-    - name: Unzipping ARM artifact
-      run: |
-        unzip -qq ./deploymenttemplates/ArmTemplates.zip -d .
     - name: Login to Azure
       uses: azure/login@v1
       continue-on-error: false
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     
-    - name: Deploy ARM Template
-      uses: azure/CLI@v1
-      continue-on-error: false
-      with:
-        inlineScript: |
-          az group create --name "${{ env.RESOURCEGROUPNAME }}" --location "${{ env.LOCATION }}"
-          az deployment group create --resource-group "${{ env.RESOURCEGROUPNAME }}" --template-file ./ArmTemplates/windows-webapp-template.json --parameters webAppName="${{ env.AZURE_WEBAPP_NAME }}" hostingPlanName="${{ env.HOSTINGPLANNAME }}" appInsightsLocation="${{ env.APPINSIGHTLOCATION }}" sku="${{ env.SKU }}"
     - name: 'Deploy web app'
       uses: azure/webapps-deploy@v2
       with:
