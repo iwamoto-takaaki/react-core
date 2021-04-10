@@ -45,11 +45,10 @@ jobs:
         node-version: 10.x
 
     # Run dotnet build and publish
-    - name: dotnet build unit test and publish
+    - name: dotnet build and publish
       run: |
         dotnet restore
         dotnet build --configuration Release
-        dotnet test aspnet-core-dotnet-core.UnitTests/aspnet-core-dotnet-core.UnitTests.csproj
         dotnet publish -c Release -o '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/build'
 
     - name: Archive Application
