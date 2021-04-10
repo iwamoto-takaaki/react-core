@@ -31,6 +31,8 @@ jobs:
       run: |
         mkdir buildartifacts
         mkdir deploymenttemplates
+        ls -la
+
     # Setup .NET Core SDK
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
@@ -54,8 +56,7 @@ jobs:
     - name: Archive Application
       run: |
         ls -la '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/build'
-        zip --help
-        zip -q -r ./buildartifacts/Application.zip '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/build'
+        zip -qq -r ./buildartifacts/Application.zip '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/build'
     - name: Upload Application to Build Artifact
       continue-on-error: false
       uses: actions/upload-artifact@v2
