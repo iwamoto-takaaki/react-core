@@ -90,4 +90,4 @@ jobs:
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
-        package: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/Application/build'
+        package: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/build'
