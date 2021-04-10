@@ -27,12 +27,6 @@ jobs:
     # Checkout the repo
     - uses: actions/checkout@master
     
-    - name: Creating artifact directories
-      run: |
-        mkdir buildartifacts
-        mkdir deploymenttemplates
-        ls -la
-
     # Setup .NET Core SDK
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
@@ -45,6 +39,12 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: 10.x
+
+    - name: Creating artifact directories
+      run: |
+        mkdir buildartifacts
+        mkdir deploymenttemplates
+        ls -la
 
     # Run dotnet build and publish
     - name: dotnet build and publish
